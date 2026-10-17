@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "weaker_spiderwebs-test",
+  "version": "1.0.0",
+  "name": "Weaker Spiderwebs Tests",
+  "environment": "*",
+  "entrypoints": { "fabric-gametest": ["net.weaker_spiderwebs.WebGameTests"] }
+}
