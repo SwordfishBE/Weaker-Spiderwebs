@@ -23,6 +23,18 @@ record ModConfig(int breakSpiderwebDelay) {
             }
             return new ModConfig(DEFAULT_DELAY);
         }
+        try {
+            return read(path);
+        } catch (IOException | RuntimeException exception) {
+            WeakerSpiderwebs.LOGGER.warn(WeakerSpiderwebs.PREFIX
+                    + "Could not read config {}; using {} ms. The file has been preserved.",
+                    path, DEFAULT_DELAY, exception);
+            return new ModConfig(DEFAULT_DELAY);
+        }
+    }
+
+    // Reload must report errors instead of replacing an active config with defaults.
+    static ModConfig read(Path path) throws IOException {
         try (var reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             JsonObject object = JsonParser.parseReader(reader).getAsJsonObject();
             JsonElement value = object.get("breakSpiderwebDelay");
@@ -35,11 +47,6 @@ record ModConfig(int breakSpiderwebDelay) {
                 throw new IllegalArgumentException("breakSpiderwebDelay must be between 0 and 10000");
             }
             return new ModConfig(delay);
-        } catch (IOException | RuntimeException exception) {
-            WeakerSpiderwebs.LOGGER.warn(WeakerSpiderwebs.PREFIX
-                    + "Could not read config {}; using {} ms. The file has been preserved.",
-                    path, DEFAULT_DELAY, exception);
-            return new ModConfig(DEFAULT_DELAY);
         }
     }
 

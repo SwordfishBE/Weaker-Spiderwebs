@@ -1,6 +1,7 @@
 package net.weaker_spiderwebs;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
@@ -14,9 +15,12 @@ public final class WeakerSpiderwebs implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        var configPath = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json");
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+                ReloadCommand.register(dispatcher, configPath, (server, config) ->
+                        handlers.put(server, new WebBreakingHandler(config.breakSpiderwebDelay()))));
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            ModConfig config = ModConfig.load(FabricLoader.getInstance().getConfigDir()
-                    .resolve(MOD_ID + ".json"));
+            ModConfig config = ModConfig.load(configPath);
             WebBreakingHandler handler = new WebBreakingHandler(config.breakSpiderwebDelay());
             handlers.put(server, handler);
         });

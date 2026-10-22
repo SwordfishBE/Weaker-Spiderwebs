@@ -4,5 +4,5 @@
   "version": "1.0.0",
   "name": "Weaker Spiderwebs Tests",
   "environment": "*",
-  "entrypoints": { "fabric-gametest": ["net.weaker_spiderwebs.WebGameTests"] }
+  "entrypoints": { "fabric-gametest": ["net.weaker_spiderwebs.WebGameTests", "net.weaker_spiderwebs.ReloadCommandGameTests"] }
 }
