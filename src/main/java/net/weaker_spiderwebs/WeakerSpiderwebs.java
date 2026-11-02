@@ -13,9 +13,43 @@ public final class WeakerSpiderwebs implements ModInitializer {
     static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     static final String PREFIX = "[Weaker Spiderwebs] ";
 
+    private static java.nio.file.Path configPath() {
+        return FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json");
+    }
+
+    public static int delayForEditing() throws java.io.IOException {
+        var path = configPath();
+        return java.nio.file.Files.notExists(path) ? ModConfig.DEFAULT_DELAY : ModConfig.read(path).breakSpiderwebDelay();
+    }
+
+    // No client classes here: the same mod JAR must load on a dedicated server.
+    public static void saveEditedDelay(int delay, net.minecraft.server.MinecraftServer server,
+                                      java.util.function.Consumer<net.minecraft.network.chat.Component> feedback) {
+        Runnable save = () -> {
+            if (server != null && (!server.isSingleplayer() || !handlers.containsKey(server))) {
+                feedback.accept(net.minecraft.network.chat.Component.literal(PREFIX
+                        + "Config was not saved because the singleplayer world is no longer active."));
+                return;
+            }
+            try {
+                ModConfig.save(configPath(), delay);
+                if (server != null) handlers.put(server, new WebBreakingHandler(delay));
+                feedback.accept(net.minecraft.network.chat.Component.literal(PREFIX
+                        + "Config saved. breakSpiderwebDelay: " + delay + " ms."
+                        + (server == null ? " Applies when you open a singleplayer world." : " Applied to this world.")));
+            } catch (java.io.IOException | RuntimeException exception) {
+                LOGGER.warn(PREFIX + "Could not save config; the active configuration remains unchanged.", exception);
+                feedback.accept(net.minecraft.network.chat.Component.literal(PREFIX
+                        + "Could not save config. The active configuration remains unchanged. Check the config file."));
+            }
+        };
+        if (server == null) save.run();
+        else server.execute(save);
+    }
+
     @Override
     public void onInitialize() {
-        var configPath = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json");
+        var configPath = configPath();
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 ReloadCommand.register(dispatcher, configPath, (server, config) ->
                         handlers.put(server, new WebBreakingHandler(config.breakSpiderwebDelay()))));
@@ -34,6 +68,6 @@ public final class WeakerSpiderwebs implements ModInitializer {
         LOGGER.info(PREFIX + "Mod initialized. Version: {}", version);
     }
 
-    private final java.util.Map<net.minecraft.server.MinecraftServer, WebBreakingHandler> handlers
+    private static final java.util.Map<net.minecraft.server.MinecraftServer, WebBreakingHandler> handlers
             = new java.util.IdentityHashMap<>();
 }

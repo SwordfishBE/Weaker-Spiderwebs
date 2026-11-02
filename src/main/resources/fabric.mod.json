@@ -13,7 +13,14 @@
   "license": "AGPL-3.0",
   "icon": "assets/weaker_spiderwebs/icon.png",
   "environment": "*",
-  "entrypoints": { "main": ["net.weaker_spiderwebs.WeakerSpiderwebs"] },
+  "entrypoints": {
+    "main": ["net.weaker_spiderwebs.WeakerSpiderwebs"],
+    "modmenu": ["net.weaker_spiderwebs.WeakerSpiderwebsModMenu"]
+  },
+  "suggests": {
+    "modmenu": "*",
+    "cloth-config": "*"
+  },
   "depends": {
     "fabricloader": ">=0.20.1",
     "minecraft": ">=26.4-alpha.6 <=26.4",

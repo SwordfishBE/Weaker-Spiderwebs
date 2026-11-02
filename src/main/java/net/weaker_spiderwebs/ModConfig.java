@@ -11,7 +11,7 @@ import java.nio.file.Path;
 record ModConfig(int breakSpiderwebDelay) {
     static final int DEFAULT_DELAY = 500;
 
-    static ModConfig load(Path path) {
+    static synchronized ModConfig load(Path path) {
         if (Files.notExists(path)) {
             try {
                 Files.createDirectories(path.getParent());
@@ -34,7 +34,7 @@ record ModConfig(int breakSpiderwebDelay) {
     }
 
     // Reload must report errors instead of replacing an active config with defaults.
-    static ModConfig read(Path path) throws IOException {
+    static synchronized ModConfig read(Path path) throws IOException {
         try (var reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             JsonObject object = JsonParser.parseReader(reader).getAsJsonObject();
             JsonElement value = object.get("breakSpiderwebDelay");
@@ -47,6 +47,32 @@ record ModConfig(int breakSpiderwebDelay) {
                 throw new IllegalArgumentException("breakSpiderwebDelay must be between 0 and 10000");
             }
             return new ModConfig(delay);
+        }
+    }
+
+    static synchronized void save(Path path, int delay) throws IOException {
+        if (delay < 0 || delay > 10000) throw new IllegalArgumentException("Delay must be between 0 and 10000 ms.");
+        JsonObject object = new JsonObject();
+        if (Files.exists(path)) {
+            // Validate the existing document before editing; keep unrecognized fields.
+            read(path);
+            object = JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8)).getAsJsonObject();
+        }
+        object.addProperty("breakSpiderwebDelay", delay);
+        Path directory = path.toAbsolutePath().getParent();
+        Files.createDirectories(directory);
+        Path temporary = Files.createTempFile(directory, "weaker_spiderwebs-", ".tmp");
+        try {
+            Files.writeString(temporary, new com.google.gson.GsonBuilder().setPrettyPrinting().create()
+                    .toJson(object) + System.lineSeparator(), StandardCharsets.UTF_8);
+            try {
+                Files.move(temporary, path, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException exception) {
+                Files.move(temporary, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(temporary);
         }
     }
 
